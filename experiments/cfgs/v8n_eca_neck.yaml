@@ -1,0 +1,40 @@
+# I3c：ECA 插在 neck（head）三个输出 C2f 之后，共 3 处
+# 层索引 0-25，Detect 取 15/19/23。width/depth 为 v8n 系数（0.25/0.33）
+# 注：规划写"neck 两处"，这里按三尺度输出各插一处实现（覆盖更全）；
+#     若导师要求严格"两处"，删掉第 16 行那个 ECA 并把后续索引 -1 即可。
+nc: 8
+scales: {}   # 占位防止误用 scales；实际构建时由脚本删除并改用下方顶层系数
+width_multiple: 0.25
+depth_multiple: 0.33
+max_channels: 1024
+
+backbone:
+  # [from, repeats, module, args]
+  - [-1, 1, Conv, [64, 3, 2]]      # 0  P1/2
+  - [-1, 1, Conv, [128, 3, 2]]     # 1  P2/4
+  - [-1, 3, C2f, [128, True]]      # 2
+  - [-1, 1, Conv, [256, 3, 2]]     # 3  P3/8
+  - [-1, 6, C2f, [256, True]]      # 4
+  - [-1, 1, Conv, [512, 3, 2]]     # 5  P4/16
+  - [-1, 6, C2f, [512, True]]      # 6
+  - [-1, 1, Conv, [1024, 3, 2]]    # 7  P5/32
+  - [-1, 3, C2f, [1024, True]]     # 8
+  - [-1, 1, SPPF, [1024, 5]]       # 9
+
+head:
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]]  # 10
+  - [[-1, 6], 1, Concat, [1]]      # 11 cat backbone P4 (6)
+  - [-1, 3, C2f, [512]]            # 12
+  - [-1, 1, Conv, [512, 3, 2]]     # 13
+  - [[-1, 4], 1, Concat, [1]]      # 14 cat backbone P3 (4)
+  - [-1, 3, C2f, [256]]            # 15
+  - [-1, 1, ECABlock, []]          # 16 ← ECA：neck P3 C2f 后
+  - [-1, 1, Conv, [256, 3, 2]]     # 17
+  - [[-1, 12], 1, Concat, [1]]     # 18 cat head P4 (12)
+  - [-1, 3, C2f, [512]]            # 19
+  - [-1, 1, ECABlock, []]          # 20 ← ECA：neck P4 C2f 后
+  - [-1, 1, Conv, [512, 3, 2]]     # 21
+  - [[-1, 9], 1, Concat, [1]]      # 22 cat head P5 (9)
+  - [-1, 3, C2f, [1024]]           # 23
+  - [-1, 1, ECABlock, []]          # 24 ← ECA：neck P5 C2f 后
+  - [[15, 19, 23], 1, Detect, [nc]]  # 25 Detect(P3, P4, P5)

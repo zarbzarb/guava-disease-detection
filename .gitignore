@@ -1,0 +1,28 @@
+# ===== 不上传的大目录 =====
+dataset_guava_leaf_fruit/
+Guava Fruits_Dataset/
+system/
+docx/
+/runs/
+
+# ===== 个人文档 =====
+毕设规划.md
+任务.md
+部署指南-宝塔.md
+*.docx
+*.pptx
+*.xlsx
+
+# ===== Python 缓存 =====
+__pycache__/
+*.pyc
+*.cache
+.venv/
+
+# ===== 训练中间产物（只保留 best.pt 和结果图表） =====
+experiments/runs/**/last.pt
+experiments/runs/detect/
+
+# ===== 其他 =====
+.env
+.idea/
