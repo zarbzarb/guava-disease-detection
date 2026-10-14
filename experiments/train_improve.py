@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""阶段 3 改进实验（I1 通道压缩 / I2 C2f 精简 / I3 ECA 注意力 / I4 损失优化）
+"""阶段 3 改进实验（I1 通道压缩 / I2 C2f 精简 / I3 ECA 注意力 / I4 损失优化 / I5 ArcFace）
 
 对照 train_baseline.py：除改进项外，训练配置与 B0 完全一致（100ep/640/batch16/seed42），
 保证对比时"只动一个变量"。
@@ -10,6 +10,8 @@
     python train_improve.py --exp I3a        # ECA 插 backbone 三处
     python train_improve.py --exp I4a        # 类别加权损失（权重自动从 train 标签统计）
     python train_improve.py --exp I4b        # Focal 损失
+    python train_improve.py --exp I5a        # ArcFace 度量学习分类损失 m=0.30（主创新）
+    python train_improve.py --exp I5b        # ArcFace m=0.50（激进档）
 
 实验设计：
     I1a/I1b/I1c  width 倍率 0.5/0.75/1.0（相对 v8n 的 0.25 → 绝对 0.125/0.1875/0.25）
@@ -17,6 +19,7 @@
     I2a/I2b/I2c  depth 倍率 0.5/0.75/1.0（相对 v8n 的 0.33 → 绝对 0.165/0.2475/0.33）
     I3a/I3b/I3c  ECA 三种插入位置：backbone 三处 / SPPF 后 / neck 三处（cfgs/ 模板）
     I4a/I4b      类别加权 / Focal
+    I5a/I5b      ArcFace 角度间隔 0.30 / 0.50（loss_i5.py，零推理开销）
 
 产出：
     experiments/runs/improve_<exp>/   权重、曲线
@@ -29,6 +32,7 @@ from common import (HERE, PROJECT, V8N_WIDTH, V8N_DEPTH, build_cfg,
                     count_class_freq, evaluate_and_record, train_kwargs)
 from modules.eca import register_eca
 from loss_i4 import make_weighted_trainer, make_focal_trainer
+from loss_i5 import make_arcface_trainer
 
 # I1：通道压缩倍率（相对 v8n 的 0.25）
 W_MULT = {"I1a": 0.50, "I1b": 0.75, "I1c": 1.00}
@@ -45,13 +49,15 @@ NOTE = {
     "I2a": "改进-I2a C2f 0.5x", "I2b": "改进-I2b C2f 0.75x", "I2c": "改进-I2c C2f 1.0x(=B0)",
     "I3a": "改进-I3a ECA-backbone", "I3b": "改进-I3b ECA-SPPF", "I3c": "改进-I3c ECA-neck",
     "I4a": "改进-I4a 类别加权BCE", "I4b": "改进-I4b Focal(g=2,a=0.25)",
+    "I5a": "改进-I5a ArcFace(m=0.30,s=16)", "I5b": "改进-I5b ArcFace(m=0.50,s=16)",
 }
 
 
 def parse_args():
     ap = argparse.ArgumentParser(description="阶段 3 改进实验")
     ap.add_argument("--exp", required=True,
-                    choices=list(W_MULT) + list(D_MULT) + list(ECA_TPL) + ["I4a", "I4b"])
+                    choices=list(W_MULT) + list(D_MULT) + list(ECA_TPL)
+                    + ["I4a", "I4b", "I5a", "I5b"])
     ap.add_argument("--epochs", type=int, default=100)
     ap.add_argument("--imgsz", type=int, default=640)
     ap.add_argument("--batch", type=int, default=16, help="显存不足降到 8")
@@ -92,7 +98,7 @@ def main():
         model = YOLO(str(tpl))
         model.load("yolov8n.pt")   # ECA 层是新增的（随机初始化），其余层从 COCO 权重迁移
         model_label = f"yolov8n-{exp.lower()}-eca"
-    else:
+    elif exp in ("I4a", "I4b"):
         # I4：标准 v8n 结构 + 自定义损失（结构、数据、超参与 B0 完全一致）
         model = YOLO("yolov8n.pt")
         model_label = f"yolov8n-{exp.lower()}-loss"
@@ -101,6 +107,12 @@ def main():
             trainer_cls = make_weighted_trainer(weights)
         else:
             trainer_cls = make_focal_trainer(gamma=2.0, alpha=0.25)
+    else:
+        # I5：ArcFace 度量学习分类损失（主创新，零推理开销）
+        model = YOLO("yolov8n.pt")
+        model_label = f"yolov8n-{exp.lower()}-arcface"
+        margin = 0.30 if exp == "I5a" else 0.50
+        trainer_cls = make_arcface_trainer(margin=margin, scale=16.0)
 
     kw = train_kwargs(args, name)
     if trainer_cls is not None:
