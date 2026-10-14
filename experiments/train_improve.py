@@ -28,6 +28,8 @@
 import argparse
 from pathlib import Path
 
+from ultralytics import YOLO
+
 from common import (HERE, PROJECT, V8N_WIDTH, V8N_DEPTH, build_cfg,
                     count_class_freq, evaluate_and_record, train_kwargs)
 from modules.eca import register_eca
