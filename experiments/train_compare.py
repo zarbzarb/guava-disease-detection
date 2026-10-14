@@ -23,7 +23,7 @@
 import argparse
 from pathlib import Path
 
-from common import HERE, PROJECT, evaluate_and_record, train_kwargs
+from common import HERE, PROJECT, evaluate_and_record, train_kwargs, resolve_run_dir
 
 EXP_MODEL = {
     "C1": "yolov5nu.pt",     # ultralytics 官方 COCO 预训练（anchor-free，与 v8 同 head 协议）
@@ -65,7 +65,7 @@ def main():
 
     model.train(**train_kwargs(args, name))
 
-    best = Path(PROJECT) / name / "weights" / "best.pt"
+    best = resolve_run_dir(name) / "weights" / "best.pt"
     label = Path(src).stem if args.exp == "C1" else "yolov7-tiny"
     evaluate_and_record(best, name, label, args.epochs, args.imgsz, args.batch,
                         NOTE[args.exp], device=args.device)

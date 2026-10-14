@@ -137,3 +137,16 @@ def train_kwargs(args, name):
         device=args.device, seed=42, workers=args.workers,
         project=str(PROJECT), name=name,
     )
+
+
+def resolve_run_dir(name):
+    """训练后定位真实 run 目录。
+
+    坑：同名 run 已存在时 ultralytics 自动加 -2/-3 后缀（如冒烟跑占了
+    improve_i3a，正式训练落到 improve_i3a-2）。写死 runs/<name> 会误读
+    冒烟跑的旧权重（I3a 已踩坑：100 轮成绩被记成 1 轮的 0.1334）。
+    这里按修改时间取最新的匹配目录。
+    """
+    cands = sorted(PROJECT.glob(name + "*"),
+                   key=lambda p: p.stat().st_mtime if p.is_dir() else 0)
+    return cands[-1] if cands else PROJECT / name

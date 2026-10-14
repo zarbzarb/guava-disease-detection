@@ -31,7 +31,8 @@ from pathlib import Path
 from ultralytics import YOLO
 
 from common import (HERE, PROJECT, V8N_WIDTH, V8N_DEPTH, build_cfg,
-                    count_class_freq, evaluate_and_record, train_kwargs)
+                    count_class_freq, evaluate_and_record, train_kwargs,
+                    resolve_run_dir)
 from modules.eca import register_eca
 from loss_i4 import make_weighted_trainer, make_focal_trainer
 from loss_i5 import make_arcface_trainer
@@ -122,7 +123,7 @@ def main():
     else:
         model.train(**kw)
 
-    best = Path(PROJECT) / name / "weights" / "best.pt"
+    best = resolve_run_dir(name) / "weights" / "best.pt"
     evaluate_and_record(best, name, model_label, args.epochs, args.imgsz, args.batch,
                         NOTE[exp], device=args.device)
 

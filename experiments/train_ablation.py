@@ -24,7 +24,8 @@ import argparse
 from pathlib import Path
 
 from common import (HERE, PROJECT, V8N_WIDTH, V8N_DEPTH, build_cfg,
-                    count_class_freq, evaluate_and_record, train_kwargs)
+                    count_class_freq, evaluate_and_record, train_kwargs,
+                    resolve_run_dir)
 from modules.eca import register_eca
 from loss_i4 import make_weighted_trainer, make_focal_trainer
 
@@ -129,7 +130,7 @@ def main():
             # 与 B0（yolov8n.pt 预训练微调）协议一致，保证消融对比公平
         model.train(**kw)
 
-    best = Path(PROJECT) / name / "weights" / "best.pt"
+    best = resolve_run_dir(name) / "weights" / "best.pt"
     model_label = "yolov8n-" + "-".join(parts)
     evaluate_and_record(best, name, model_label, args.epochs, args.imgsz, args.batch,
                         note, device=args.device)

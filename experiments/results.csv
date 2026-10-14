@@ -2,3 +2,4 @@ date,exp,model,epochs,imgsz,batch,params_M,GFLOPs,mAP50,mAP50-95,P,R,note
 2026-09-28 16:50,baseline_yolov8n,yolov8n,100,640,16,3.012,8.2,0.8309,0.8275,0.7889,0.7443,基线 A0（首次，作废）
 2026-09-28 19:30,baseline_yolov8n-2,yolov8n,100,640,16,3.012,8.2,0.843,0.839,0.72,0.83,基线 A0（正式，B1 体检用这份）
 2026-10-14 18:35,baseline_yolov8s,yolov8s,100,640,16,11.139,28.7,0.856,0.853,0.7614,0.8092,基线 A0
+2026-10-14 22:00,improve_i3a,yolov8n-i3a-eca,100,640,16,3.007,8.1,0.8439,0.841,0.7906,0.769,改进-I3a ECA-backbone（正式，重评 runs/improve_i3a-2）
